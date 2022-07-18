@@ -1,6 +1,12 @@
+import logging
 from aiohttp import web
-from application.photo import handlers
+from application.photo import handlers, middleware
 
-app = web.Application()
+logging.basicConfig(level=logging.DEBUG, filename='myapp.log',
+                    format='%(asctime)s,%(msecs)d: %(levelname)s: %(message)s')
+
+app = web.Application(middlewares=[middleware.auth_required_middleware])
+
 app.router.add_post('/post', handlers.post_handler)
 app.router.add_get('/get', handlers.get_handler)
+app.router.add_get('/logs', handlers.logs_handler)
