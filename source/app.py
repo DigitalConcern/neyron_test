@@ -1,4 +1,3 @@
-import logging
 from aiohttp import web
 from application.photo import handlers, middleware
 
