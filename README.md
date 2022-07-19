@@ -25,4 +25,4 @@
 5.	Конвертирование и компрессия изображения – использовать пакет pillow</br>
 6.	Логирование - использовать пакет logging</br>
 Формат логов: </br>
-%(asctime)s,%(msecs)d: %(route)s: %(functionName)s: %(levelname)s: %(message)s</br>
+```%(asctime)s,%(msecs)d: %(route)s: %(functionName)s: %(levelname)s: %(message)s```
