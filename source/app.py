@@ -7,6 +7,6 @@ logging.basicConfig(level=logging.DEBUG, filename='myapp.log',
 
 app = web.Application(middlewares=[middleware.auth_required_middleware])
 
-app.router.add_post('/post', handlers.post_handler)
-app.router.add_get('/get', handlers.get_handler)
+app.router.add_post('/image', handlers.post_handler)
+app.router.add_get('/image', handlers.get_handler)
 app.router.add_get('/logs', handlers.logs_handler)
