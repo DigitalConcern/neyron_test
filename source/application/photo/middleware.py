@@ -1,8 +1,11 @@
+from uuid import UUID
+
 from aiohttp import web
 
 import logging
 
 from application.log_adapter import CustomAdapter
+from application.database import connect
 
 logging.basicConfig(level=logging.DEBUG, filename='myapp.log',
                     format="%(asctime)s: %(funcName)s: %(levelname)s: %(message)s")
@@ -13,8 +16,25 @@ logger = CustomAdapter(logger, {"route": None})
 
 @web.middleware
 async def auth_required_middleware(request, handler):
-    if request.headers.get('Authorization') == 'Bearer 12345':
-        logger.info('авторизованный запрос', route=str(request.method) + " " + str(request.rel_url))
+    if str(request.rel_url) != '/login':
+        connection = await connect()
+        ids = [record['id'] for record in (await connection.fetch("SELECT id FROM auth_users"))]
+
+        try:
+            token = UUID(request.headers.get('Authorization')[7:])
+        except:
+            return web.Response(status=400)
+
+        if token in ids:
+            logger.info('авторизованный запрос', route=str(request.method) + " " + str(request.rel_url))
+            await connection.close()
+            return await handler(request)
+
+        await connection.close()
+
+        logger.info('запрос без авторизации', route=str(request.method) + " " + str(request.rel_url))
+
+        return web.Response(status=401)
+    else:
         return await handler(request)
-    logger.info('запрос без авторизации', route=str(request.method) + " " + str(request.rel_url))
-    return web.Response(status=401)
+
