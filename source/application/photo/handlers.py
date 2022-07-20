@@ -40,7 +40,10 @@ async def image_post_handler(request: aiohttp.request):
 
     logger.info('запрос на загрузку изображения', route=str(request.method) + " " + str(request.rel_url))
     with BytesIO() as bytes_stream:
-        imageObj = Image.open(BytesIO(image_bin))
+        try:
+            imageObj = Image.open(BytesIO(image_bin))
+        except:
+            return web.Response(status=400)
 
         if imageObj.format != "JPEG":
             logger.info(f'получено изображение в формате {imageObj.format}',
