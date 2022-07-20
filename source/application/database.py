@@ -21,7 +21,7 @@ async def make_migrations():
 
     # TODO: шифрование пароля
     await connection.execute("CREATE TABLE IF NOT EXISTS auth_users (id uuid primary key, email text, password text, "
-                             "access_token uuid);")
+                             "access_token uuid, time_create timestamp without time zone);")
     await connection.execute("CREATE TABLE IF NOT EXISTS photos_test (id uuid primary key, image_bin bytea);")
     logger.info("Миграции выполнены")
 

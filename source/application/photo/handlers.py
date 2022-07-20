@@ -1,3 +1,4 @@
+import datetime
 from io import BytesIO
 from PIL import Image
 
@@ -114,14 +115,17 @@ async def registration_handler(request: aiohttp.request):
 
     connection = await database.connect()
     try:
-        await connection.execute("INSERT INTO auth_users (id, email, password, access_token) VALUES ($1, $2, $3, $4)",
+        await connection.execute("INSERT INTO auth_users (id, email, password, access_token, time_create) VALUES ($1, "
+                                 "$2, $3, $4, $5)",
                                  unique_user_id,
                                  str(data['email']),
                                  str(data['password']),
-                                 access_token)
-    except asyncpg.exceptions.UniqueViolationError:
-        await connection.execute("UPDATE auth_users SET access_token=$1 WHERE email=$2 AND password=$3",
                                  access_token,
+                                 datetime.datetime.now())
+    except asyncpg.exceptions.UniqueViolationError:
+        await connection.execute("UPDATE auth_users SET access_token=$1, time_create=$2 WHERE email=$3 AND password=$4",
+                                 access_token,
+                                 datetime.datetime.now(),
                                  str(data['email']),
                                  str(data['password']))
         return web.Response(text=str(access_token), status=409)
@@ -140,8 +144,9 @@ async def login_handler(request: aiohttp.request):
     access_token = uuid.uuid4()
 
     connection = await database.connect()
-    await connection.execute("UPDATE auth_users SET access_token=$1 WHERE email=$2 AND password=$3",
+    await connection.execute("UPDATE auth_users SET access_token=$1, time_create=$2 WHERE email=$3 AND password=$4",
                              access_token,
+                             datetime.datetime.now(),
                              str(data['email']),
                              str(data['password']))
 
