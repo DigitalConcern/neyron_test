@@ -5,7 +5,6 @@ from PIL import Image
 import uuid
 import asyncpg
 
-import aiohttp
 from aiohttp import web
 
 from application import database
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger = CustomAdapter(logger, {"route": None})
 
 
-async def image_get_handler(request: aiohttp.request):
+async def image_get_handler(request: web.Request):
     image_id = request.rel_url.query["id"]
 
     logger.info('запрос на получение изображения', route=str(request.method) + " " + str(request.rel_url))
@@ -36,7 +35,7 @@ async def image_get_handler(request: aiohttp.request):
     return web.Response(text=str(image_bin), status=200)
 
 
-async def image_post_handler(request: aiohttp.request):
+async def image_post_handler(request: web.Request):
     image_bin = await request.read()
 
     logger.info('запрос на загрузку изображения', route=str(request.method) + " " + str(request.rel_url))
@@ -52,14 +51,14 @@ async def image_post_handler(request: aiohttp.request):
             x = int(request.rel_url.query["x"])
             logger.debug(f'необязательный параметр x',
                          route=str(request.method) + " " + str(request.rel_url))
-        except KeyError:
+        except:
             x = None
 
         try:
             y = int(request.rel_url.query["y"])
             logger.debug(f'необязательный параметр y',
                          route=str(request.method) + " " + str(request.rel_url))
-        except KeyError:
+        except:
             y = None
 
         if x and y:
@@ -101,7 +100,7 @@ async def image_post_handler(request: aiohttp.request):
     return web.Response(text=str(unique_id), status=200)
 
 
-async def registration_handler(request: aiohttp.request):
+async def registration_handler(request: web.Request):
     data = await request.json()
 
     try:
@@ -136,7 +135,7 @@ async def registration_handler(request: aiohttp.request):
     return web.Response(text=str(access_token), status=200)
 
 
-async def login_handler(request: aiohttp.request):
+async def login_handler(request: web.Request):
     data = await request.json()
 
     logger.info('запрос на вход', route=str(request.method) + " " + str(request.rel_url))
@@ -165,7 +164,7 @@ async def login_handler(request: aiohttp.request):
     return web.Response(text=str(access_token), status=200)
 
 
-async def logs_handler(request: aiohttp.request):
+async def logs_handler(request: web.Request):
     logs = open("myapp.log")
     logger.info(f'выгружены логи',
                 route=str(request.method) + " " + str(request.rel_url))
