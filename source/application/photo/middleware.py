@@ -24,12 +24,12 @@ async def auth_required_middleware(request, handler):
             return web.Response(status=400)
 
         connection = await connect()
-        try:
-            time_create = await connection.fetchval(
-                "SELECT time_create FROM auth_users WHERE access_token=$1",
-                token
-            )
-        except:
+
+        time_create = await connection.fetchval(
+            "SELECT time_create FROM auth_users WHERE access_token=$1",
+            token
+        )
+        if time_create is None:
             return web.Response(status=401)
 
         if (datetime.datetime.now() - time_create).total_seconds() < 10*60:
