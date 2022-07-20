@@ -144,11 +144,15 @@ async def login_handler(request: aiohttp.request):
     access_token = uuid.uuid4()
 
     connection = await database.connect()
-    await connection.execute("UPDATE auth_users SET access_token=$1, time_create=$2 WHERE email=$3 AND password=$4",
-                             access_token,
-                             datetime.datetime.now(),
-                             str(data['email']),
-                             str(data['password']))
+    res = await connection.execute(
+        "UPDATE auth_users SET access_token=$1, time_create=$2 WHERE email=$3 AND password=$4",
+        access_token,
+        datetime.datetime.now(),
+        str(data['email']),
+        str(data['password'])
+    )
+    if res == 'UPDATE 0':
+        return web.Response(status=404)
 
     access_token = await connection.fetchval("SELECT access_token FROM auth_users WHERE email=$1 AND password=$2",
                                              str(data['email']),
