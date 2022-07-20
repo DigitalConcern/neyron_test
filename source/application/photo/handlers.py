@@ -100,6 +100,10 @@ async def image_post_handler(request: aiohttp.request):
     return web.Response(text=str(unique_id), status=200)
 
 
+# TODO: отдельный метод для регистрации, сейчас решение временное, так как могут возникнуть проблемы
+#  в случае, если токен скомпрометирован или юзеру его забыл
+
+
 async def login_handler(request: aiohttp.request):
     data = await request.json()
 

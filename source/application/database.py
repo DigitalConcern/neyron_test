@@ -19,12 +19,9 @@ async def connect():
 async def make_migrations():
     connection = await connect()
 
-    try:
-        # TODO: шифрование пароля
-        await connection.execute("CREATE TABLE auth_users (id uuid primary key, email text, password text);")
-        await connection.execute("CREATE TABLE photos_test (id uuid primary key, image_bin bytea);")
-        logger.info("Миграции выполнены")
-    except asyncpg.exceptions.DuplicateTableError:
-        pass
+    # TODO: шифрование пароля
+    await connection.execute("CREATE TABLE IF NOT EXISTS auth_users (id uuid primary key, email text, password text);")
+    await connection.execute("CREATE TABLE IF NOT EXISTS photos_test (id uuid primary key, image_bin bytea);")
+    logger.info("Миграции выполнены")
 
     await connection.close()
