@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from aiohttp import web
+import datetime
 
 import logging
 
@@ -16,16 +17,22 @@ logger = CustomAdapter(logger, {"route": None})
 
 @web.middleware
 async def auth_required_middleware(request, handler):
-    if str(request.rel_url) != '/login':
-        connection = await connect()
-        ids = [record['id'] for record in (await connection.fetch("SELECT id FROM auth_users"))]
-
+    if str(request.rel_url) != '/login' and str(request.rel_url) != '/registration':
         try:
             token = UUID(request.headers.get('Authorization')[7:])
         except:
             return web.Response(status=400)
 
-        if token in ids:
+        connection = await connect()
+
+        time_create = await connection.fetchval(
+            "SELECT time_create FROM auth_users WHERE access_token=$1",
+            token
+        )
+        if time_create is None:
+            return web.Response(status=401)
+
+        if (datetime.datetime.now() - time_create).total_seconds() < 10*60:
             logger.info('авторизованный запрос', route=str(request.method) + " " + str(request.rel_url))
             await connection.close()
             return await handler(request)
@@ -37,4 +44,3 @@ async def auth_required_middleware(request, handler):
         return web.Response(status=401)
     else:
         return await handler(request)
-

@@ -1,10 +1,10 @@
+import datetime
 from io import BytesIO
 from PIL import Image
 
 import uuid
 import asyncpg
 
-import aiohttp
 from aiohttp import web
 
 from application import database
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger = CustomAdapter(logger, {"route": None})
 
 
-async def image_get_handler(request: aiohttp.request):
+async def image_get_handler(request: web.Request):
     image_id = request.rel_url.query["id"]
 
     logger.info('запрос на получение изображения', route=str(request.method) + " " + str(request.rel_url))
@@ -35,7 +35,7 @@ async def image_get_handler(request: aiohttp.request):
     return web.Response(text=str(image_bin), status=200)
 
 
-async def image_post_handler(request: aiohttp.request):
+async def image_post_handler(request: web.Request):
     image_bin = await request.read()
 
     logger.info('запрос на загрузку изображения', route=str(request.method) + " " + str(request.rel_url))
@@ -54,14 +54,14 @@ async def image_post_handler(request: aiohttp.request):
             x = int(request.rel_url.query["x"])
             logger.debug(f'необязательный параметр x',
                          route=str(request.method) + " " + str(request.rel_url))
-        except KeyError:
+        except:
             x = None
 
         try:
             y = int(request.rel_url.query["y"])
             logger.debug(f'необязательный параметр y',
                          route=str(request.method) + " " + str(request.rel_url))
-        except KeyError:
+        except:
             y = None
 
         if x and y:
@@ -103,11 +103,7 @@ async def image_post_handler(request: aiohttp.request):
     return web.Response(text=str(unique_id), status=200)
 
 
-# TODO: отдельный метод для регистрации, сейчас решение временное, так как могут возникнуть проблемы
-#  в случае, если токен скомпрометирован или юзеру его забыл
-
-
-async def login_handler(request: aiohttp.request):
+async def registration_handler(request: web.Request):
     data = await request.json()
 
     try:
@@ -117,23 +113,61 @@ async def login_handler(request: aiohttp.request):
 
     logger.info('запрос на регистрацию', route=str(request.method) + " " + str(request.rel_url))
 
+    access_token = uuid.uuid4()
+
     connection = await database.connect()
     try:
-        await connection.execute("INSERT INTO auth_users (id, email, password) VALUES ($1, $2, $3)",
+        await connection.execute("INSERT INTO auth_users (id, email, password, access_token, time_create) VALUES ($1, "
+                                 "$2, $3, $4, $5)",
                                  unique_user_id,
                                  str(data['email']),
-                                 str(data['password']))
+                                 str(data['password']),
+                                 access_token,
+                                 datetime.datetime.now())
     except asyncpg.exceptions.UniqueViolationError:
-        return web.Response(text=str(unique_user_id), status=409)
-
+        await connection.execute("UPDATE auth_users SET access_token=$1, time_create=$2 WHERE email=$3 AND password=$4",
+                                 access_token,
+                                 datetime.datetime.now(),
+                                 str(data['email']),
+                                 str(data['password']))
+        return web.Response(text=str(access_token), status=409)
     await connection.close()
 
     logger.info('пользователь зарегистрирован', route=str(request.method) + " " + str(request.rel_url))
 
-    return web.Response(text=str(unique_user_id), status=200)
+    return web.Response(text=str(access_token), status=200)
 
 
-async def logs_handler(request: aiohttp.request):
+async def login_handler(request: web.Request):
+    data = await request.json()
+
+    logger.info('запрос на вход', route=str(request.method) + " " + str(request.rel_url))
+
+    access_token = uuid.uuid4()
+
+    connection = await database.connect()
+    res = await connection.execute(
+        "UPDATE auth_users SET access_token=$1, time_create=$2 WHERE email=$3 AND password=$4",
+        access_token,
+        datetime.datetime.now(),
+        str(data['email']),
+        str(data['password'])
+    )
+    if res == 'UPDATE 0':
+        return web.Response(status=404)
+
+    access_token = await connection.fetchval("SELECT access_token FROM auth_users WHERE email=$1 AND password=$2",
+                                             str(data['email']),
+                                             str(data['password']))
+
+    await connection.close()
+
+    logger.info('пользователь авторизован', route=str(request.method) + " " + str(request.rel_url))
+
+    return web.Response(text=str(access_token), status=200)
+
+
+async def logs_handler(request: web.Request):
     logs = open("myapp.log")
     logger.info(f'выгружены логи',
                 route=str(request.method) + " " + str(request.rel_url))
