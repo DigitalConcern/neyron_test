@@ -100,11 +100,7 @@ async def image_post_handler(request: aiohttp.request):
     return web.Response(text=str(unique_id), status=200)
 
 
-# TODO: отдельный метод для регистрации, сейчас решение временное, так как могут возникнуть проблемы
-#  в случае, если токен скомпрометирован или юзеру его забыл
-
-
-async def login_handler(request: aiohttp.request):
+async def registration_handler(request: aiohttp.request):
     data = await request.json()
 
     try:
@@ -114,20 +110,50 @@ async def login_handler(request: aiohttp.request):
 
     logger.info('запрос на регистрацию', route=str(request.method) + " " + str(request.rel_url))
 
+    access_token = uuid.uuid4()
+
     connection = await database.connect()
     try:
-        await connection.execute("INSERT INTO auth_users (id, email, password) VALUES ($1, $2, $3)",
+        await connection.execute("INSERT INTO auth_users (id, email, password, access_token) VALUES ($1, $2, $3, $4)",
                                  unique_user_id,
                                  str(data['email']),
-                                 str(data['password']))
+                                 str(data['password']),
+                                 access_token)
     except asyncpg.exceptions.UniqueViolationError:
-        return web.Response(text=str(unique_user_id), status=409)
-
+        await connection.execute("UPDATE auth_users SET access_token=$1 WHERE email=$2 AND password=$3",
+                                 access_token,
+                                 str(data['email']),
+                                 str(data['password']))
+        return web.Response(text=str(access_token), status=409)
     await connection.close()
 
     logger.info('пользователь зарегистрирован', route=str(request.method) + " " + str(request.rel_url))
 
-    return web.Response(text=str(unique_user_id), status=200)
+    return web.Response(text=str(access_token), status=200)
+
+
+async def login_handler(request: aiohttp.request):
+    data = await request.json()
+
+    logger.info('запрос на вход', route=str(request.method) + " " + str(request.rel_url))
+
+    access_token = uuid.uuid4()
+
+    connection = await database.connect()
+    await connection.execute("UPDATE auth_users SET access_token=$1 WHERE email=$2 AND password=$3",
+                             access_token,
+                             str(data['email']),
+                             str(data['password']))
+
+    access_token = await connection.fetchval("SELECT access_token FROM auth_users WHERE email=$1 AND password=$2",
+                                             str(data['email']),
+                                             str(data['password']))
+
+    await connection.close()
+
+    logger.info('пользователь авторизован', route=str(request.method) + " " + str(request.rel_url))
+
+    return web.Response(text=str(access_token), status=200)
 
 
 async def logs_handler(request: aiohttp.request):

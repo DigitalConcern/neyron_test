@@ -16,16 +16,16 @@ logger = CustomAdapter(logger, {"route": None})
 
 @web.middleware
 async def auth_required_middleware(request, handler):
-    if str(request.rel_url) != '/login':
+    if str(request.rel_url) != '/login' and str(request.rel_url) != '/registration':
         connection = await connect()
-        ids = [record['id'] for record in (await connection.fetch("SELECT id FROM auth_users"))]
+        access_tokens = [record['access_token'] for record in (await connection.fetch("SELECT access_token FROM auth_users"))]
 
         try:
             token = UUID(request.headers.get('Authorization')[7:])
         except:
             return web.Response(status=400)
 
-        if token in ids:
+        if token in access_tokens:
             logger.info('авторизованный запрос', route=str(request.method) + " " + str(request.rel_url))
             await connection.close()
             return await handler(request)
