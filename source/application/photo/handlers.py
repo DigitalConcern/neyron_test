@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logger = CustomAdapter(logger, {"route": None})
 
 
-async def get_handler(request: aiohttp.request):
+async def image_get_handler(request: aiohttp.request):
     image_id = request.rel_url.query["id"]
 
     logger.info('запрос на получение изображения', route=str(request.method) + " " + str(request.rel_url))
@@ -35,7 +35,7 @@ async def get_handler(request: aiohttp.request):
     return web.Response(text=str(image_bin), status=200)
 
 
-async def post_handler(request: aiohttp.request):
+async def image_post_handler(request: aiohttp.request):
     image_bin = await request.read()
 
     logger.info('запрос на загрузку изображения', route=str(request.method) + " " + str(request.rel_url))
@@ -65,6 +65,7 @@ async def post_handler(request: aiohttp.request):
             imageObj.thumbnail((x, y))
             logger.info(f'размер изображения изменен по двум параметрам',
                         route=str(request.method) + " " + str(request.rel_url))
+        # В случае, если задан только один параметр размера, второй высчитывается через начальное соотношение сторон
         elif x:
             x_percent = (x / float(imageObj.size[0]))
             y = int((float(imageObj.size[0]) * float(x_percent)))
@@ -97,6 +98,36 @@ async def post_handler(request: aiohttp.request):
     logger.info(f'изображение успешно сохранено',
                 route=str(request.method) + " " + str(request.rel_url))
     return web.Response(text=str(unique_id), status=200)
+
+
+# TODO: отдельный метод для регистрации, сейчас решение временное, так как могут возникнуть проблемы
+#  в случае, если токен скомпрометирован или юзеру его забыл
+
+
+async def login_handler(request: aiohttp.request):
+    data = await request.json()
+
+    try:
+        unique_user_id = uuid.uuid5(uuid.NAMESPACE_DNS, str(data['email']) + str(data['password']))
+    except KeyError:
+        return web.Response(status=400)
+
+    logger.info('запрос на регистрацию', route=str(request.method) + " " + str(request.rel_url))
+
+    connection = await database.connect()
+    try:
+        await connection.execute("INSERT INTO auth_users (id, email, password) VALUES ($1, $2, $3)",
+                                 unique_user_id,
+                                 str(data['email']),
+                                 str(data['password']))
+    except asyncpg.exceptions.UniqueViolationError:
+        return web.Response(text=str(unique_user_id), status=409)
+
+    await connection.close()
+
+    logger.info('пользователь зарегистрирован', route=str(request.method) + " " + str(request.rel_url))
+
+    return web.Response(text=str(unique_user_id), status=200)
 
 
 async def logs_handler(request: aiohttp.request):
