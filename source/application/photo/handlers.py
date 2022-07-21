@@ -52,6 +52,9 @@ async def image_post_handler(request: web.Request):
             logger.info(f'получено изображение в формате {imageObj.format}',
                         route=str(request.method) + " " + str(request.rel_url))
             imageObj = imageObj.convert("RGB")
+        else:
+            logger.info(f'получено изображение в формате JPEG',
+                        route=str(request.method) + " " + str(request.rel_url))
 
         try:
             x = request.rel_url.query["x"]
