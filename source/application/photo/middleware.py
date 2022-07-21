@@ -36,13 +36,13 @@ async def auth_required_middleware(request, handler):
             return web.Response(status=401)
 
         if (datetime.datetime.now() - time_create).total_seconds() < 10*60:
-            logger.info('авторизованный запрос', route=str(request.method) + " " + str(request.rel_url))
+            logger.debug('авторизованный запрос', route=str(request.method) + " " + str(request.rel_url))
             await connection.close()
             return await handler(request)
 
         await connection.close()
 
-        logger.info('запрос без авторизации', route=str(request.method) + " " + str(request.rel_url))
+        logger.debug('запрос без авторизации', route=str(request.method) + " " + str(request.rel_url))
 
         return web.Response(status=401)
     else:
