@@ -1,4 +1,5 @@
 import datetime
+import json
 from io import BytesIO
 from PIL import Image
 
@@ -122,7 +123,21 @@ async def image_post_handler(request: web.Request):
 
 
 async def registration_handler(request: web.Request):
-    data = await request.json()
+    try:
+        data = await request.json()
+    except json.decoder.JSONDecodeError:
+        return web.Response(status=400)
+
+    try:
+        email = data['email']
+        password = data['password']
+        try:
+            email = str(email)
+            password = str(password)
+        except ValueError:
+            return web.Response(status=400)
+    except KeyError:
+        return web.Response(status=400)
 
     try:
         unique_user_id = uuid.uuid5(uuid.NAMESPACE_DNS, str(data['email']) + str(data['password']))
@@ -138,16 +153,16 @@ async def registration_handler(request: web.Request):
         await connection.execute("INSERT INTO auth_users (id, email, password, access_token, time_create) VALUES ($1, "
                                  "$2, $3, $4, $5)",
                                  unique_user_id,
-                                 str(data['email']),
-                                 str(data['password']),
+                                 email,
+                                 password,
                                  access_token,
                                  datetime.datetime.now())
     except asyncpg.exceptions.UniqueViolationError:
         await connection.execute("UPDATE auth_users SET access_token=$1, time_create=$2 WHERE email=$3 AND password=$4",
                                  access_token,
                                  datetime.datetime.now(),
-                                 str(data['email']),
-                                 str(data['password']))
+                                 email,
+                                 password)
         return web.Response(text=str(access_token), status=409)
     await connection.close()
 
@@ -157,7 +172,20 @@ async def registration_handler(request: web.Request):
 
 
 async def login_handler(request: web.Request):
-    data = await request.json()
+    try:
+        data = await request.json()
+    except json.decoder.JSONDecodeError:
+        return web.Response(status=400)
+    try:
+        email = data['email']
+        password = data['password']
+        try:
+            email = str(email)
+            password = str(password)
+        except ValueError:
+            return web.Response(status=400)
+    except KeyError:
+        return web.Response(status=400)
 
     logger.info('запрос на вход', route=str(request.method) + " " + str(request.rel_url))
 
@@ -168,15 +196,15 @@ async def login_handler(request: web.Request):
         "UPDATE auth_users SET access_token=$1, time_create=$2 WHERE email=$3 AND password=$4",
         access_token,
         datetime.datetime.now(),
-        str(data['email']),
-        str(data['password'])
+        email,
+        password
     )
     if res == 'UPDATE 0':
         return web.Response(status=404)
 
     access_token = await connection.fetchval("SELECT access_token FROM auth_users WHERE email=$1 AND password=$2",
-                                             str(data['email']),
-                                             str(data['password']))
+                                             email,
+                                             password)
 
     await connection.close()
 
