@@ -25,6 +25,7 @@ async def image_get_handler(request: web.Request):
     try:
         image_id = request.rel_url.query["id"]
     except KeyError:
+        logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(status=400)
 
     logger.info('запрос на получение изображения', route=str(request.method) + " " + str(request.rel_url))
@@ -32,6 +33,7 @@ async def image_get_handler(request: web.Request):
     try:
         image_bin = await connection.fetchval("SELECT image_bin FROM photos_test WHERE id = $1", image_id)
     except asyncpg.exceptions.DataError:
+        logger.debug('изображение не найдено', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(status=404)
     await connection.close()
     logger.info('изображение получено', route=str(request.method) + " " + str(request.rel_url))
@@ -47,6 +49,7 @@ async def image_post_handler(request: web.Request):
         try:
             imageObj = Image.open(BytesIO(image_bin))
         except:
+            logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
             return web.Response(status=400)
 
         if imageObj.format != "JPEG":
@@ -62,6 +65,7 @@ async def image_post_handler(request: web.Request):
             try:
                 x = int(x)
             except ValueError:
+                logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
                 return web.Response(status=400)
             logger.debug(f'необязательный параметр x',
                          route=str(request.method) + " " + str(request.rel_url))
@@ -73,6 +77,7 @@ async def image_post_handler(request: web.Request):
             try:
                 y = int(y)
             except ValueError:
+                logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
                 return web.Response(status=400)
             logger.debug(f'необязательный параметр y',
                          route=str(request.method) + " " + str(request.rel_url))
@@ -102,6 +107,7 @@ async def image_post_handler(request: web.Request):
             try:
                 quality = int(quality)
             except ValueError:
+                logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
                 return web.Response(status=400)
             imageObj.save(bytes_stream, format='JPEG', quality=quality)
             logger.debug(f'качество изображения изменено',
@@ -126,6 +132,7 @@ async def registration_handler(request: web.Request):
     try:
         data = await request.json()
     except json.decoder.JSONDecodeError:
+        logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(status=400)
 
     try:
@@ -135,13 +142,16 @@ async def registration_handler(request: web.Request):
             email = str(email)
             password = str(password)
         except ValueError:
+            logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
             return web.Response(status=400)
     except KeyError:
+        logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(status=400)
 
     try:
         unique_user_id = uuid.uuid5(uuid.NAMESPACE_DNS, str(data['email']) + str(data['password']))
     except KeyError:
+        logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(status=400)
 
     logger.info('запрос на регистрацию', route=str(request.method) + " " + str(request.rel_url))
@@ -163,6 +173,7 @@ async def registration_handler(request: web.Request):
                                  datetime.datetime.now(),
                                  email,
                                  password)
+        logger.debug('такой пользователь уже есть', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(text=str(access_token), status=409)
     await connection.close()
 
@@ -200,6 +211,7 @@ async def login_handler(request: web.Request):
         password
     )
     if res == 'UPDATE 0':
+        logger.debug('пользователь не найден', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(status=404)
 
     access_token = await connection.fetchval("SELECT access_token FROM auth_users WHERE email=$1 AND password=$2",
