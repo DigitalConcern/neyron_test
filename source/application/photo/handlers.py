@@ -32,9 +32,6 @@ async def image_get_handler(request: web.Request):
     await connection.close()
     logger.info('изображение получено', route=str(request.method) + " " + str(request.rel_url))
 
-    im = Image.open(BytesIO(image_bin))
-    im.show()
-
     return web.Response(text=str(image_bin), status=200)
 
 
