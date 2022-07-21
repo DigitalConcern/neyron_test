@@ -25,7 +25,7 @@ async def image_get_handler(request: web.Request):
     try:
         image_id = request.rel_url.query["id"]
     except KeyError:
-        logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
+        logger.debug('bad request - неверный параметр запроса', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(status=400)
 
     logger.info('запрос на получение изображения', route=str(request.method) + " " + str(request.rel_url))
@@ -49,7 +49,8 @@ async def image_post_handler(request: web.Request):
         try:
             imageObj = Image.open(BytesIO(image_bin))
         except:
-            logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
+            logger.debug('bad request - некорректный формат изображения',
+                         route=str(request.method) + " " + str(request.rel_url))
             return web.Response(status=400)
 
         if imageObj.format != "JPEG":
@@ -65,7 +66,7 @@ async def image_post_handler(request: web.Request):
             try:
                 x = int(x)
             except ValueError:
-                logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
+                logger.debug('bad request - ', route=str(request.method) + " " + str(request.rel_url))
                 return web.Response(status=400)
             logger.debug(f'необязательный параметр x',
                          route=str(request.method) + " " + str(request.rel_url))
@@ -77,7 +78,8 @@ async def image_post_handler(request: web.Request):
             try:
                 y = int(y)
             except ValueError:
-                logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
+                logger.debug('bad request - неверный параметр запроса',
+                             route=str(request.method) + " " + str(request.rel_url))
                 return web.Response(status=400)
             logger.debug(f'необязательный параметр y',
                          route=str(request.method) + " " + str(request.rel_url))
@@ -107,7 +109,8 @@ async def image_post_handler(request: web.Request):
             try:
                 quality = int(quality)
             except ValueError:
-                logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
+                logger.debug('bad request - неверный параметр запроса',
+                             route=str(request.method) + " " + str(request.rel_url))
                 return web.Response(status=400)
             imageObj.save(bytes_stream, format='JPEG', quality=quality)
             logger.debug(f'качество изображения изменено',
@@ -132,7 +135,7 @@ async def registration_handler(request: web.Request):
     try:
         data = await request.json()
     except json.decoder.JSONDecodeError:
-        logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
+        logger.debug('bad request - некорректное тело запроса', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(status=400)
 
     try:
@@ -142,17 +145,14 @@ async def registration_handler(request: web.Request):
             email = str(email)
             password = str(password)
         except ValueError:
-            logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
+            logger.debug('bad request - неверный формат данных',
+                         route=str(request.method) + " " + str(request.rel_url))
             return web.Response(status=400)
     except KeyError:
-        logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
+        logger.debug('bad request  - некорректный json', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(status=400)
 
-    try:
-        unique_user_id = uuid.uuid5(uuid.NAMESPACE_DNS, str(data['email']) + str(data['password']))
-    except KeyError:
-        logger.debug('bad request', route=str(request.method) + " " + str(request.rel_url))
-        return web.Response(status=400)
+    unique_user_id = uuid.uuid5(uuid.NAMESPACE_DNS, email + password)
 
     logger.info('запрос на регистрацию', route=str(request.method) + " " + str(request.rel_url))
 
@@ -186,7 +186,9 @@ async def login_handler(request: web.Request):
     try:
         data = await request.json()
     except json.decoder.JSONDecodeError:
+        logger.debug('bad request - некорректное тело запроса', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(status=400)
+
     try:
         email = data['email']
         password = data['password']
@@ -194,8 +196,11 @@ async def login_handler(request: web.Request):
             email = str(email)
             password = str(password)
         except ValueError:
+            logger.debug('bad request - неверный формат данных',
+                         route=str(request.method) + " " + str(request.rel_url))
             return web.Response(status=400)
     except KeyError:
+        logger.debug('bad request  - некорректный json', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(status=400)
 
     logger.info('запрос на вход', route=str(request.method) + " " + str(request.rel_url))
