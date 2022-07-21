@@ -22,8 +22,8 @@ async def auth_required_middleware(request, handler):
         try:
             token = UUID(request.headers.get('Authorization')[7:])
         except:
-            logger.debug('некорректный токен', route=str(request.method) + " " + str(request.rel_url))
-            return web.Response(status=400)
+            logger.debug('запрос без авторизации', route=str(request.method) + " " + str(request.rel_url))
+            return web.Response(status=401)
 
         connection = await connect()
 
