@@ -65,6 +65,10 @@ async def image_post_handler(request: web.Request):
             x = request.rel_url.query["x"]
             try:
                 x = int(x)
+                if x <= 0:
+                    logger.debug('bad request - неверный параметр запроса',
+                                 route=str(request.method) + " " + str(request.rel_url))
+                    return web.Response(status=400)
             except ValueError:
                 logger.debug('bad request - неверный параметр запроса', route=str(request.method) + " " + str(request.rel_url))
                 return web.Response(status=400)
@@ -77,6 +81,10 @@ async def image_post_handler(request: web.Request):
             y = request.rel_url.query["y"]
             try:
                 y = int(y)
+                if y <= 0:
+                    logger.debug('bad request - неверный параметр запроса',
+                                 route=str(request.method) + " " + str(request.rel_url))
+                    return web.Response(status=400)
             except ValueError:
                 logger.debug('bad request - неверный параметр запроса',
                              route=str(request.method) + " " + str(request.rel_url))
