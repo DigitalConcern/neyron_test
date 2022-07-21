@@ -42,7 +42,7 @@ async def auth_required_middleware(request, handler):
 
         await connection.close()
 
-        logger.debug('запрос без авторизации', route=str(request.method) + " " + str(request.rel_url))
+        # logger.debug('запрос без авторизации', route=str(request.method) + " " + str(request.rel_url))
 
         return web.Response(status=401)
     else:
