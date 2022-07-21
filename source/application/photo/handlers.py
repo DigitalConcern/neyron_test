@@ -21,7 +21,10 @@ logger = CustomAdapter(logger, {"route": None})
 
 
 async def image_get_handler(request: web.Request):
-    image_id = request.rel_url.query["id"]
+    try:
+        image_id = request.rel_url.query["id"]
+    except KeyError:
+        return web.Response(status=400)
 
     logger.info('запрос на получение изображения', route=str(request.method) + " " + str(request.rel_url))
     connection = await database.connect()
