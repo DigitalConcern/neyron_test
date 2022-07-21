@@ -65,7 +65,7 @@ async def image_post_handler(request: web.Request):
             x = None
 
         try:
-            y = int(request.rel_url.query["y"])
+            y = request.rel_url.query["y"]
             try:
                 y = int(y)
             except ValueError:
