@@ -32,6 +32,9 @@ async def image_get_handler(request: web.Request):
     await connection.close()
     logger.info('изображение получено', route=str(request.method) + " " + str(request.rel_url))
 
+    im = Image.open(BytesIO(image_bin))
+    im.show()
+
     return web.Response(text=str(image_bin), status=200)
 
 
@@ -51,17 +54,25 @@ async def image_post_handler(request: web.Request):
             imageObj = imageObj.convert("RGB")
 
         try:
-            x = int(request.rel_url.query["x"])
+            x = request.rel_url.query["x"]
+            try:
+                x = int(x)
+            except ValueError:
+                return web.Response(status=400)
             logger.debug(f'необязательный параметр x',
                          route=str(request.method) + " " + str(request.rel_url))
-        except:
+        except KeyError:
             x = None
 
         try:
             y = int(request.rel_url.query["y"])
+            try:
+                y = int(y)
+            except ValueError:
+                return web.Response(status=400)
             logger.debug(f'необязательный параметр y',
                          route=str(request.method) + " " + str(request.rel_url))
-        except:
+        except KeyError:
             y = None
 
         if x and y:
@@ -84,7 +95,11 @@ async def image_post_handler(request: web.Request):
 
         try:
             quality = request.rel_url.query["quality"]
-            imageObj.save(bytes_stream, format='JPEG', quality=int(quality))
+            try:
+                quality = int(quality)
+            except ValueError:
+                return web.Response(status=400)
+            imageObj.save(bytes_stream, format='JPEG', quality=quality)
             logger.debug(f'качество изображения изменено',
                          route=str(request.method) + " " + str(request.rel_url))
         except KeyError:
