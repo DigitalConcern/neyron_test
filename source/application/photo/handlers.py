@@ -66,7 +66,7 @@ async def image_post_handler(request: web.Request):
             try:
                 x = int(x)
             except ValueError:
-                logger.debug('bad request - ', route=str(request.method) + " " + str(request.rel_url))
+                logger.debug('bad request - неверный параметр запроса', route=str(request.method) + " " + str(request.rel_url))
                 return web.Response(status=400)
             logger.debug(f'необязательный параметр x',
                          route=str(request.method) + " " + str(request.rel_url))
