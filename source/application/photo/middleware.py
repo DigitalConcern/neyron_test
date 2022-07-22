@@ -28,9 +28,10 @@ async def auth_required_middleware(request, handler):
         connection = await connect()
 
         time_create = await connection.fetchval(
-            "SELECT time_create FROM auth_users WHERE access_token=$1",
+            "SELECT time_create FROM auth WHERE access_token=$1",
             token
         )
+
         if time_create is None:
             logger.debug('запрос без авторизации', route=str(request.method) + " " + str(request.rel_url))
             return web.Response(status=401)

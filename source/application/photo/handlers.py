@@ -172,19 +172,19 @@ async def registration_handler(request: web.Request):
 
     connection = await database.connect()
     try:
-        await connection.execute("INSERT INTO auth_users (id, email, password, access_token, time_create) VALUES ($1, "
-                                 "$2, $3, $4, $5)",
+        await connection.execute("INSERT INTO users (id, email, password) VALUES ($1, $2, $3)",
                                  unique_user_id,
                                  email,
-                                 password,
+                                 password)
+        await connection.execute("INSERT INTO auth (user_id, access_token, time_create) VALUES ($1, $2, $3)",
+                                 unique_user_id,
                                  access_token,
                                  datetime.datetime.now())
     except asyncpg.exceptions.UniqueViolationError:
-        await connection.execute("UPDATE auth_users SET access_token=$1, time_create=$2 WHERE email=$3 AND password=$4",
+        await connection.execute("UPDATE auth SET access_token=$1, time_create=$2 WHERE user_id=$3",
                                  access_token,
                                  datetime.datetime.now(),
-                                 email,
-                                 password)
+                                 unique_user_id)
         logger.debug('такой пользователь уже есть', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(text=str(access_token), status=409)
     await connection.close()
@@ -218,22 +218,18 @@ async def login_handler(request: web.Request):
     # logger.info('запрос на вход', route=str(request.method) + " " + str(request.rel_url))
 
     access_token = uuid.uuid4()
+    unique_user_id = uuid.uuid5(uuid.NAMESPACE_DNS, email + password)
 
     connection = await database.connect()
     res = await connection.execute(
-        "UPDATE auth_users SET access_token=$1, time_create=$2 WHERE email=$3 AND password=$4",
+        "UPDATE auth SET access_token=$1, time_create=$2 WHERE user_id=$3",
         access_token,
         datetime.datetime.now(),
-        email,
-        password
+        unique_user_id
     )
     if res == 'UPDATE 0':
         logger.debug('пользователь не найден', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(status=404)
-
-    access_token = await connection.fetchval("SELECT access_token FROM auth_users WHERE email=$1 AND password=$2",
-                                             email,
-                                             password)
 
     await connection.close()
 
