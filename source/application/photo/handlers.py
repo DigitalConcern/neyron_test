@@ -218,7 +218,7 @@ async def login_handler(request: web.Request):
     connection = await database.connect()
 
     unique_user_id = await connection.fetchval(
-        "SELECT id FROM auth WHERE email=$1 and password=$2",
+        "SELECT id FROM users WHERE email=$1 and password=$2",
         email,
         password
     )
@@ -229,8 +229,8 @@ async def login_handler(request: web.Request):
     await connection.execute(
         "INSERT INTO auth (user_id, access_token, time_create) VALUES ($1, $2, $3)",
         unique_user_id,
-        datetime.datetime.now(),
-        access_token
+        access_token,
+        datetime.datetime.now()
     )
 
     await connection.close()
