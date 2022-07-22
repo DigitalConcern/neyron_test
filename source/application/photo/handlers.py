@@ -181,10 +181,6 @@ async def registration_handler(request: web.Request):
                                  access_token,
                                  datetime.datetime.now())
     except asyncpg.exceptions.UniqueViolationError:
-        await connection.execute("UPDATE auth SET access_token=$1, time_create=$2 WHERE user_id=$3",
-                                 access_token,
-                                 datetime.datetime.now(),
-                                 unique_user_id)
         logger.debug('такой пользователь уже есть', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(text=str(access_token), status=409)
     await connection.close()
@@ -218,18 +214,24 @@ async def login_handler(request: web.Request):
     # logger.info('запрос на вход', route=str(request.method) + " " + str(request.rel_url))
 
     access_token = uuid.uuid4()
-    unique_user_id = uuid.uuid5(uuid.NAMESPACE_DNS, email + password)
 
     connection = await database.connect()
-    res = await connection.execute(
-        "UPDATE auth SET access_token=$1, time_create=$2 WHERE user_id=$3",
-        access_token,
-        datetime.datetime.now(),
-        unique_user_id
+
+    unique_user_id = await connection.fetchval(
+        "SELECT id FROM auth WHERE email=$1 and password=$2",
+        email,
+        password
     )
-    if res == 'UPDATE 0':
+    if unique_user_id is None:
         logger.debug('пользователь не найден', route=str(request.method) + " " + str(request.rel_url))
         return web.Response(status=404)
+
+    await connection.execute(
+        "INSERT INTO auth (user_id, access_token, time_create) VALUES ($1, $2, $3)",
+        unique_user_id,
+        datetime.datetime.now(),
+        access_token
+    )
 
     await connection.close()
 
