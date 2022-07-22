@@ -19,6 +19,7 @@ logger = CustomAdapter(logger, {"route": None})
 async def auth_required_middleware(request, handler):
     if str(request.rel_url) != '/login' and str(request.rel_url) != '/registration':
         try:
+            # делаем срез для получения токена
             token = UUID(request.headers.get('Authorization')[7:])
         except:
             logger.debug('запрос без авторизации', route=str(request.method) + " " + str(request.rel_url))
