@@ -2,3 +2,4 @@ aiohttp
 asyncio
 pillow
 asyncpg
+docker-compose

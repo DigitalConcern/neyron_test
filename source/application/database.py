@@ -1,4 +1,6 @@
 import logging
+import os
+
 import asyncpg
 
 logging.basicConfig(level=logging.DEBUG, filename='myapp.log',
@@ -9,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 # TODO: подключение к базе данных через переменные среды
 async def connect():
-    conn = await asyncpg.connect(user='postgres', password='12345',
-                                 database='postgres', host='127.0.0.1')
+    conn = await asyncpg.connect(user=os.environ.get('POSTGRES_USER'), password=os.environ.get('POSTGRES_PASSWORD'),
+                                 database=os.environ.get('POSTGRES_NAME'), host='db')
 
     return conn
 
